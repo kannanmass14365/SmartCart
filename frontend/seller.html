@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartCart - Seller Registration</title>
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .seller-container {
+            max-width: 650px;
+            margin: 25px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 14px;
+            box-shadow: 0 4px 15px #0001;
+        }
+
+        h1 {
+            text-align: center;
+            color: #222;
+        }
+
+        .form-group {
+            margin-bottom: 17px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 7px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: #ffca28;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .note {
+            color: #666;
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="seller-container">
+        <h1>🛍️ Seller Registration</h1>
+        <p>Register your seller account on SmartCart.</p>
+
+        <form id="sellerForm">
+            <div class="form-group">
+                <label for="sellerName">Seller Name</label>
+                <input id="sellerName" name="sellerName"
+                       type="text" required>
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input id="phone" name="phone" type="tel"
+                       pattern="[0-9]{10}" maxlength="10"
+                       inputmode="numeric"
+                       placeholder="10-digit phone number" required>
+            </div>
+
+            <div class="form-group">
+                <label for="pan">PAN Document</label>
+                <input id="pan" name="pan" type="file"
+                       accept="image/*,.pdf" required>
+            </div>
+
+            <div class="form-group">
+                <label for="aadhaar">Aadhaar Document</label>
+                <input id="aadhaar" name="aadhaar" type="file"
+                       accept="image/*,.pdf" required>
+                <p class="note">Use a masked Aadhaar copy where possible. Real identity documents should only be uploaded to a secure, authorized verification system.</p>
+            </div>
+
+            <hr>
+
+            <h2>Product Details</h2>
+
+            <div class="form-group">
+                <label for="productName">Product Name</label>
+                <input id="productName" name="productName"
+                       type="text" required>
+            </div>
+
+            <div class="form-group">
+                <label for="productImage">Product Image</label>
+                <input id="productImage" name="productImage"
+                       type="file" accept="image/*" required>
+            </div>
+
+            <div class="form-group">
+                <label for="price">Product Price (₹)</label>
+                <input id="price" name="price" type="number"
+                       min="1" step="0.01" required>
+            </div>
+
+            <button class="submit-btn" type="submit">
+                Submit for Verification
+            </button>
+        </form>
+
+        <p id="message" role="status"></p>
+    </div>
+
+  <script>
+const sellerForm = document.getElementById("sellerForm");
+const message = document.getElementById("message");
+
+sellerForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+
+    message.textContent = "Submitting seller details...";
+
+    try {
+        const formData = new FormData(sellerForm);
+
+        const response = await fetch("/seller-register", {
+            method: "POST",
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || "Submission failed");
+        }
+
+        message.textContent =
+            result.message + " Seller ID: " + result.sellerId;
+
+        sellerForm.reset();
+
+    } catch (error) {
+        message.textContent =
+            "Error: " + error.message +
+            ". Check whether the backend is running.";
+    }
+});
+</script>
+<!-- Back to Home Button -->
+<div style="text-align: center; margin: 25px 0;">
+    <button type="button"
+        onclick="window.location.href='index.html'"
+        style="
+            padding: 14px 30px;
+            background-color: #FFD700;
+            color: black;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;">
+        🏠 Back to Home
+    </button>
+</div>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Profile | SmartCart</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f5f9;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .edit-container {
+            width: 100%;
+            max-width: 480px;
+            background: white;
+            padding: 35px;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .logo {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #222;
+        }
+
+        .logo span {
+            color: #f5a623;
+        }
+
+        h2 {
+            text-align: center;
+            margin: 20px 0 8px;
+            color: #222;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #777;
+            font-size: 14px;
+            margin-bottom: 28px;
+        }
+
+        label {
+            display: block;
+            margin: 18px 0 8px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            font-family: inherit;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #f5a623;
+            box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.15);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .save-btn {
+            width: 100%;
+            padding: 14px;
+            margin-top: 25px;
+            border: none;
+            border-radius: 8px;
+            background: #ffd814;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .save-btn:hover {
+            background: #f5c400;
+        }
+
+        .cancel-btn {
+            width: 100%;
+            padding: 13px;
+            margin-top: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        #message {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #16803c;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="edit-container">
+
+        <div class="logo">🛒 Smart<span>Cart</span></div>
+
+        <h2>Edit Profile</h2>
+        <p class="subtitle">Update your personal information</p>
+
+        <form id="editForm">
+            <input type="hidden" id="customerId">
+
+            <label for="name">Full Name</label>
+            <input type="text" id="name" required>
+
+            <label for="phone">Phone Number</label>
+            <input
+                type="tel"
+                id="phone"
+                pattern="[0-9]{10}"
+                maxlength="10"
+                required
+            >
+
+            <label for="address">Address</label>
+            <textarea id="address" required></textarea>
+
+            <button type="submit" class="save-btn">
+                Save Changes
+            </button>
+
+            <button
+                type="button"
+                class="cancel-btn"
+                onclick="history.back()"
+            >
+                Cancel
+            </button>
+
+            <p id="message"></p>
+
+        </form>
+    </div>
+<script>
+const params = new URLSearchParams(window.location.search);
+const phone = params.get("phone");
+
+async function loadCustomer() {
+    if (!phone) {
+        document.getElementById("message").textContent =
+            "Phone number missing. Please open Edit Profile again.";
+        return;
+    }
+
+    try {
+        const response = await fetch(
+            `/customer/${encodeURIComponent(phone)}`
+        );
+
+        const customer = await response.json();
+
+        if (!response.ok) {
+            document.getElementById("message").textContent =
+                customer.message || "Customer details not found.";
+            return;
+        }
+
+        document.getElementById("name").value =
+            customer.full_name;
+
+        document.getElementById("phone").value =
+            customer.phone;
+
+        document.getElementById("address").value =
+            customer.address;
+
+        document.getElementById("customerId").value =
+            customer.customer_id;
+
+    } catch (error) {
+        console.error(error);
+
+        document.getElementById("message").textContent =
+            "Unable to connect to the server.";
+    }
+}
+
+document.getElementById("editForm").addEventListener(
+    "submit",
+    async function(event) {
+        event.preventDefault();
+
+        const customerId =
+            document.getElementById("customerId").value;
+
+        const data = {
+            fullName: document.getElementById("name").value.trim(),
+            phone: document.getElementById("phone").value.trim(),
+            address: document.getElementById("address").value.trim()
+        };
+
+        if (!customerId) {
+            document.getElementById("message").textContent =
+                "Customer ID missing. Reload the page.";
+            return;
+        }
+
+        if (!/^[0-9]{10}$/.test(data.phone)) {
+            document.getElementById("message").textContent =
+                "Enter a valid 10-digit phone number.";
+            return;
+        }
+
+        try {
+            const response = await fetch(
+                `/update-customer/${encodeURIComponent(customerId)}`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(data)
+                }
+            );
+
+            const result = await response.json();
+
+            document.getElementById("message").textContent =
+                result.message ||
+                (response.ok
+                    ? "Profile updated successfully!"
+                    : "Unable to update profile.");
+
+        } catch (error) {
+            console.error(error);
+
+            document.getElementById("message").textContent =
+                "Unable to save changes.";
+        }
+    }
+);
+
+loadCustomer();
+</script>
+</body>
+</html>

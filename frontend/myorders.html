@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartCart - My Orders</title>
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .orders-container {
+            max-width: 900px;
+            margin: 30px auto;
+        }
+
+        .order-card {
+            background: white;
+            padding: 18px;
+            margin: 18px 0;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px #0001;
+            display: flex;
+            gap: 18px;
+            align-items: center;
+        }
+
+        .order-card img {
+            width: 120px;
+            height: 110px;
+            object-fit: contain;
+        }
+
+        .order-details {
+            flex: 1;
+        }
+
+        .order-details h3 {
+            margin-top: 0;
+        }
+
+        .status {
+            color: #198754;
+            font-weight: bold;
+        }
+
+        .back-button {
+            background: #ff7043;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        @media (max-width: 500px) {
+            .order-card {
+                align-items: flex-start;
+                gap: 10px;
+                padding: 12px;
+            }
+
+            .order-card img {
+                width: 85px;
+                height: 85px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="orders-container">
+        <h1>📦 My Orders</h1>
+        <p>Track your SmartCart purchases here.</p>
+
+        <button class="back-button" onclick="location.href='index.html'">
+            Continue Shopping
+        </button>
+
+        <div id="ordersList">
+            <p>Loading your orders...</p>
+        </div>
+    </div>
+
+    <script>
+        async function loadOrders() {
+            const container = document.getElementById("ordersList");
+
+            try {
+                const response = await fetch("/my-orders");
+
+                if (!response.ok) {
+                    throw new Error("Could not load orders");
+                }
+
+                const orders = await response.json();
+                container.replaceChildren();
+
+                if (orders.length === 0) {
+                    container.textContent = "No orders found.";
+                    return;
+                }
+
+                orders.forEach(function(order) {
+                    const card = document.createElement("div");
+                    card.className = "order-card";
+
+                    if (order.product_image) {
+                        const image = document.createElement("img");
+                        image.src = order.product_image;
+                        image.alt = order.product_name || "Product";
+                        card.appendChild(image);
+                    }
+
+                    const details = document.createElement("div");
+                    details.className = "order-details";
+
+                    function addText(tag, text, className) {
+                        const element = document.createElement(tag);
+                        element.textContent = text;
+                        if (className) element.className = className;
+                        details.appendChild(element);
+                    }
+
+                    addText("h3", order.product_name);
+                    addText("p", "Order ID: " + order.order_id);
+                    addText("p", "Price: ₹" +
+                        Number(order.price).toLocaleString("en-IN"));
+                    addText("p", "Payment: " + order.payment_method);
+                    addText("p", "Status: " + order.order_status, "status");
+
+                    if (order.order_date) {
+                        addText("p", "Ordered on: " +
+                            new Date(order.order_date).toLocaleString("en-IN"));
+                    }
+
+                    card.appendChild(details);
+                    container.appendChild(card);
+                });
+
+            } catch (error) {
+                container.textContent =
+                    "Unable to load orders. Please check that the server is running.";
+                console.error(error);
+            }
+        }
+
+        loadOrders();
+    </script>
+</body>
+</html>

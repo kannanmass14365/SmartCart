@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartCart - Payment</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+      .payment-box {
+            max-width: 500px;
+            margin: 50px auto;
+            padding: 25px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px #0002;
+        }
+        .payment-option {
+            display: block;
+            padding: 15px;
+            margin: 12px 0;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .payment-option input {
+            margin-right: 10px;
+        }
+        .pay-button {
+            width: 100%;
+            padding: 14px;
+            background: #ff7043;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="payment-box">
+        <h1>SmartCart Payment</h1>
+        <p>Select your payment method</p>
+
+        <form id="paymentForm">
+            <label class="payment-option">
+                <input type="radio" name="payment" value="Cash on Delivery" required>
+                Cash on Delivery
+            </label>
+
+            <label class="payment-option">
+                <input type="radio" name="payment" value="UPI">
+                UPI
+            </label>
+
+            <label class="payment-option">
+                <input type="radio" name="payment" value="EMI">
+                EMI
+            </label>
+
+            <button class="pay-button" type="submit">
+                Continue
+            </button>
+        </form>
+
+        <p id="message"></p>
+    </div>
+
+<script>
+document.getElementById("paymentForm").addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const selectedOption = document.querySelector(
+        'input[name="payment"]:checked'
+    );
+
+    if (!selectedOption) {
+        alert("Please select a payment method.");
+        return;
+    }
+
+    const product = JSON.parse(
+        sessionStorage.getItem("smartcartSelectedProduct") || "null"
+    );
+
+    if (!product) {
+        alert("Product not found. Please click Buy Now again.");
+        return;
+    }
+
+    const button = this.querySelector('button[type="submit"]');
+
+    button.disabled = true;
+    button.textContent = "Placing Order...";
+
+    try {
+        const response = await fetch("/save-order", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                productName: product.name,
+                productImage: product.image,
+                price: Number(product.price),
+                paymentMethod: selectedOption.value
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || "Order failed");
+        }
+
+       sessionStorage.setItem(
+    "smartcartPayment",
+    selectedOption.value
+);
+
+// Show animated order confirmation
+showOrderConfirmation(product, selectedOption.value);
+
+    } catch (error) {
+        console.error("Payment error:", error);
+
+        alert("Order failed: " + error.message);
+
+        button.disabled = false;
+        button.textContent = "Continue";
+    }
+});
+
+function showOrderConfirmation(product, paymentMethod) {
+    document.querySelector(".payment-box").innerHTML = `
+        <div class="confirmed">
+
+            <div class="success-circle">
+                <svg viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="44"></circle>
+                    <path d="M28 51 L43 66 L73 35"></path>
+                </svg>
+            </div>
+
+            <h1>Order Confirmed!</h1>
+
+            <p class="subtitle">
+                🎉 Your order has been placed successfully!
+            </p>
+
+            <div class="order-product">
+                <img src="${product.image}" alt="Product">
+
+                <div>
+                    <h3>${product.name}</h3>
+                    <p>Price: ₹${Number(product.price).toLocaleString("en-IN")}</p>
+                    <p>Payment: ${paymentMethod}</p>
+                </div>
+            </div>
+
+            <p class="order-status">
+                ✅ Order Placed Successfully
+            </p>
+
+            <button class="pay-button"
+                onclick="window.location.href='myorders.html'">
+                📦 View My Orders
+            </button>
+
+            <br><br>
+
+            <button class="pay-button"
+                onclick="window.location.href='index.html'">
+                🛍️ Continue Shopping
+            </button>
+
+        </div>
+    `;
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+</script>
+<style>
+.confirmed {
+    text-align: center;
+    animation: appear 0.5s ease-out;
+}
+
+.success-circle {
+    width: 100px;
+    height: 100px;
+    margin: 15px auto 25px;
+}
+
+.success-circle svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+.success-circle circle {
+    fill: #e7f9ed;
+    stroke: #22a45a;
+    stroke-width: 4;
+    stroke-dasharray: 277;
+    stroke-dashoffset: 277;
+    animation: drawCircle 0.7s ease forwards;
+}
+
+.success-circle path {
+    fill: none;
+    stroke: #22a45a;
+    stroke-width: 6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 75;
+    stroke-dashoffset: 75;
+    animation: drawCheck 0.45s ease forwards 0.65s;
+}
+
+.confirmed h1 {
+    color: #198754;
+    animation: appear 0.5s ease-out 0.3s both;
+}
+
+.subtitle {
+    color: #666;
+    margin: 12px 0 22px;
+}
+
+.order-product {
+    display: flex;
+    align-items: center;
+    text-align: left;
+    gap: 15px;
+    padding: 12px;
+    margin: 18px 0;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+}
+
+.order-product img {
+    width: 75px;
+    height: 75px;
+    object-fit: contain;
+}
+
+.order-status {
+    color: #198754;
+    font-weight: bold;
+    margin: 18px 0;
+}
+
+@keyframes drawCircle {
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes drawCheck {
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes appear {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style> 
+
+     
+   
+
+</body>
+</html>

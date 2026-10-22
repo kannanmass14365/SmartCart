@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Details</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h2>User Login</h2>
+
+    <form id="customerForm">
+        <input type="text" id="name"
+               placeholder="Enter Name" required>
+        <br><br>
+
+        <input type="tel" id="phone"
+               placeholder="10-digit Number"
+               pattern="[0-9]{10}"
+               maxlength="10" required>
+        <br><br>
+
+        <textarea id="address"
+                  placeholder="Enter Address"
+                  required></textarea>
+        <br><br>
+
+        
+        <button type="submit">Submit</button>
+
+<p id="message"></p>
+</form>
+
+<!-- Back to Home Button -->
+<div style="text-align: center; margin-top: 15px;">
+    <button type="button"
+        onclick="window.location.href='index.html'"
+        style="
+            width: 30%;
+            padding: 14px;
+            background: #ffffffee;
+            color: #2196f3;
+            border: 2px solid #f3cd21;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;">
+        🏠 Back to Home
+    </button>
+</div>
+    </form>
+<script>
+document.getElementById("customerForm").addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const fullName = document.getElementById("name").value.trim();
+    const phone = document.getElementById("phone").value.trim();
+    const message = document.getElementById("message");
+
+    try {
+        const response = await fetch("/customer-login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                fullName: fullName,
+                phone: phone
+            })
+        });
+
+        const result = await response.json();
+
+        message.textContent = result.message;
+
+        if (response.ok) {
+            sessionStorage.setItem(
+                "smartcartCustomer",
+                JSON.stringify(result.customer)
+            );
+
+            window.location.href = "index.html";
+        }
+    } catch (error) {
+        message.textContent = "Server connection failed. Please try again.";
+        console.error(error);
+    }
+});
+</script>
+    
+
+</body>
+</html>

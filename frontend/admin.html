@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartCart Admin - Order Tracking</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .admin-box {
+            max-width: 700px;
+            margin: 30px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px #0002;
+        }
+        .order-row {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        select, button {
+            padding: 10px;
+            margin-top: 8px;
+            border-radius: 6px;
+        }
+        select {
+            width: 100%;
+            border: 1px solid #ccc;
+        }
+        button {
+            background: #ff7043;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .message {
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-box">
+        <h1>📦 Order Tracking Admin</h1>
+        <p>Update the status of an order.</p>
+        <div id="orders">Loading orders...</div>
+        <hr style="margin: 30px 0;">
+
+<h1>🏪 Seller Verification</h1>
+<p>Review seller applications and update their status.</p>
+
+<div id="sellers">Loading sellers...</div>
+    <hr style="margin: 30px 0;">
+
+<h1>🏪 Seller Verification</h1>
+<p>Review seller applications and update their status.</p>
+
+<div id="sellers">Loading sellers...</div>
+    </div>
+
+
+    <script>
+        const statuses = [
+            "Order Placed",
+            "Confirmed",
+            "Shipped",
+            "Out for Delivery",
+            "Delivered"
+        ];
+
+        async function loadOrders() {
+            const container = document.getElementById("orders");
+            container.textContent = "Loading orders...";
+
+            try {
+                const response = await fetch("/my-orders");
+                if (!response.ok) throw new Error("Could not load orders");
+
+                const orders = await response.json();
+                container.replaceChildren();
+
+                if (orders.length === 0) {
+                    container.textContent = "No orders found.";
+                    return;
+                }
+
+                orders.forEach(order => {
+                    const card = document.createElement("div");
+                    card.className = "order-row";
+
+                    const title = document.createElement("h3");
+                    title.textContent = order.product_name;
+                    card.appendChild(title);
+
+                    const info = document.createElement("p");
+                    info.textContent = "Order ID: " + order.order_id +
+                        " | Current status: " + order.order_status;
+                    card.appendChild(info);
+
+                    const select = document.createElement("select");
+                    statuses.forEach(status => {
+                        const option = document.createElement("option");
+                        option.value = status;
+                        option.textContent = status;
+                        if (status === order.order_status) {
+                            option.selected = true;
+                        }
+                        select.appendChild(option);
+                    });
+                    card.appendChild(select);
+
+                    const button = document.createElement("button");
+                    button.textContent = "Update Status";
+                    card.appendChild(button);
+
+                    const message = document.createElement("p");
+                    message.className = "message";
+                    card.appendChild(message);
+
+                    button.addEventListener("click", async () => {
+                        button.disabled = true;
+                        message.textContent = "Updating...";
+
+                        try {
+                            const result = await fetch(
+                                "/update-order-status/" + order.order_id,
+                                {
+                                    method: "PUT",
+                                    headers: {
+                                        "Content-Type": "application/json"
+                                    },
+                                    body: JSON.stringify({
+                                        status: select.value
+                                    })
+                                }
+                            );
+
+                            const data = await result.json();
+                            if (!result.ok) {
+                                throw new Error(data.message || "Update failed");
+                            }
+
+                            message.textContent = "Status updated successfully!";
+                            info.textContent = "Order ID: " + order.order_id +
+                                " | Current status: " + data.status;
+                        } catch (error) {
+                            message.textContent = "Error: " + error.message;
+                        } finally {
+                            button.disabled = false;
+                        }
+                    });
+
+                    container.appendChild(card);
+                });
+            } catch (error) {
+                container.textContent = "Could not load orders. Check the server.";
+            }
+        }
+
+        loadOrders();
+        // Load seller applications
+async function loadSellers() {
+    const container = document.getElementById("sellers");
+    container.textContent = "Loading sellers...";
+
+    try {
+        const response = await fetch("/admin/sellers");
+
+        if (!response.ok) {
+            throw new Error("Could not load sellers");
+        }
+
+        const sellers = await response.json();
+        container.replaceChildren();
+
+        if (sellers.length === 0) {
+            container.textContent = "No seller applications found.";
+            return;
+        }
+
+        sellers.forEach(seller => {
+            const card = document.createElement("div");
+            card.className = "order-row";
+
+            const title = document.createElement("h3");
+            title.textContent = seller.seller_name;
+            card.appendChild(title);
+
+            const details = document.createElement("p");
+            details.textContent =
+                `Seller ID: ${seller.seller_id} | ` +
+                `Product: ${seller.product_name} | ` +
+                `Price: ₹${seller.product_price} | ` +
+                `Status: ${seller.verification_status}`;
+            card.appendChild(details);
+            const productImage = document.createElement("img");
+
+productImage.src =
+    `/seller-product-image/${encodeURIComponent(seller.product_image_path)}`;
+
+productImage.alt = seller.product_name;
+productImage.style.width = "120px";
+productImage.style.height = "120px";
+productImage.style.objectFit = "contain";
+productImage.style.display = "block";
+productImage.style.margin = "10px 0";
+
+card.appendChild(productImage);
+
+            if (seller.verification_status === "Pending") {
+                ["Approved", "Rejected"].forEach(status => {
+                    const button = document.createElement("button");
+                    button.textContent =
+                        status === "Approved" ? "Approve ✓" : "Reject ✕";
+
+                    button.style.marginRight = "10px";
+                    button.style.background =
+                        status === "Approved" ? "#198754" : "#dc3545";
+
+                    button.addEventListener("click", () => {
+                        updateSellerStatus(seller.seller_id, status, button);
+                    });
+
+                    card.appendChild(button);
+                });
+            }
+
+            const message = document.createElement("p");
+            card.appendChild(message);
+
+            container.appendChild(card);
+        });
+
+    } catch (error) {
+        container.textContent =
+            "Could not load sellers. Check whether the backend is running.";
+    }
+}
+
+// Approve or reject a seller
+async function updateSellerStatus(sellerId, status, button) {
+    if (!confirm(`Are you sure you want to ${status} this seller?`)) {
+        return;
+    }
+
+    button.disabled = true;
+
+    try {
+        const response = await fetch(`/admin/seller/${sellerId}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ status })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || "Update failed");
+        }
+
+        alert(result.message);
+        await loadSellers();
+
+    } catch (error) {
+        alert("Error: " + error.message);
+        button.disabled = false;
+    }
+}
+
+loadSellers();
+    </script>
+</body>
+</html>
