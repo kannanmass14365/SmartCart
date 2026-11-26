@@ -1,0 +1,14 @@
+.env
+node_modules/# Dependencies
+node_modules/
+
+# Environment secrets
+.env
+backend/.env
+
+# Private uploaded documents and images
+backend/private-uploads/
+
+# Python cache
+__pycache__/
+*.pyc

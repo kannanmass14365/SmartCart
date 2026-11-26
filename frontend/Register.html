@@ -1,0 +1,168 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartCart Register</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .register-container {
+            width: 90%;
+            max-width: 400px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #222;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 7px;
+            font-size: 15px;
+        }
+
+        button {
+            width: 100%;
+            padding: 13px;
+            margin-top: 12px;
+            border: none;
+            border-radius: 7px;
+            background: #f3cd21;
+            color: #222;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .message {
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        a {
+            color: #333;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="register-container">
+
+        <h2>Create SmartCart Account</h2>
+
+        <form id="registerForm">
+
+            <input
+                type="text"
+                id="full_name"
+                placeholder="Enter Full Name"
+                required
+            >
+
+            <input
+                type="email"
+                id="email"
+                placeholder="Enter Gmail Address"
+                required
+            >
+
+            <input
+                type="password"
+                id="password"
+                placeholder="Create SmartCart Password (8+ characters)"
+                minlength="8"
+                required
+            >
+
+            <button type="submit">Create Account</button>
+
+        </form>
+
+        <p id="message" class="message"></p>
+
+        <p style="text-align:center;">
+            Already have an account?
+            <a href="Login.html">Login</a>
+        </p>
+
+    </div>
+
+    <script>
+        document.getElementById("registerForm")
+        .addEventListener("submit", async function(event) {
+
+            event.preventDefault();
+
+            const full_name =
+                document.getElementById("full_name").value.trim();
+
+            const email =
+                document.getElementById("email").value.trim();
+
+            const password =
+                document.getElementById("password").value;
+
+            const message =
+                document.getElementById("message");
+
+            try {
+                const response = await fetch("/email-register", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        full_name,
+                        email,
+                        password
+                    })
+                });
+
+                const data = await response.json();
+
+                message.textContent = data.message;
+
+                if (data.success) {
+                    message.style.color = "green";
+
+                    setTimeout(() => {
+                        window.location.href = "Login.html";
+                    }, 1500);
+                } else {
+                    message.style.color = "red";
+                }
+
+            } catch (error) {
+                console.error(error);
+                message.textContent = "Server connection failed";
+                message.style.color = "red";
+            }
+        });
+    </script>
+
+</body>
+</html>

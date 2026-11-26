@@ -1,94 +1,203 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer Details</title>
-    <link rel="stylesheet" href="style.css">
-</head>
-<body>
+    <title>SmartCart Login</title>
 
-    <h2>User Login</h2>
+    <style>
+        * { box-sizing: border-box; }
 
-    <form id="customerForm">
-        <input type="text" id="name"
-               placeholder="Enter Name" required>
-        <br><br>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
 
-        <input type="tel" id="phone"
-               placeholder="10-digit Number"
-               pattern="[0-9]{10}"
-               maxlength="10" required>
-        <br><br>
+        .login-container {
+            width: 90%;
+            max-width: 400px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
 
-        <textarea id="address"
-                  placeholder="Enter Address"
-                  required></textarea>
-        <br><br>
+        h2, .subtitle { text-align: center; }
 
-        
-        <button type="submit">Submit</button>
+        .subtitle {
+            color: #777;
+            margin-bottom: 25px;
+        }
 
-<p id="message"></p>
-</form>
+        input {
+            width: 100%;
+            padding: 13px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 7px;
+            font-size: 15px;
+        }
 
-<!-- Back to Home Button -->
-<div style="text-align: center; margin-top: 15px;">
-    <button type="button"
-        onclick="window.location.href='index.html'"
-        style="
-            width: 30%;
-            padding: 14px;
-            background: #ffffffee;
-            color: #2196f3;
-            border: 2px solid #f3cd21;
-            border-radius: 8px;
+        button {
+            width: 100%;
+            padding: 13px;
+            margin-top: 12px;
+            border: none;
+            border-radius: 7px;
             font-size: 16px;
             font-weight: bold;
-            cursor: pointer;">
-        🏠 Back to Home
-    </button>
-</div>
-    </form>
-<script>
-document.getElementById("customerForm").addEventListener("submit", async function(event) {
-    event.preventDefault();
+            cursor: pointer;
+        }
 
-    const fullName = document.getElementById("name").value.trim();
-    const phone = document.getElementById("phone").value.trim();
-    const message = document.getElementById("message");
+        .login-btn {
+            background: #f3cd21;
+            color: #222;
+        }
 
-    try {
-        const response = await fetch("/customer-login", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                fullName: fullName,
-                phone: phone
-            })
+        .message {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .back-btn {
+            background: #eee;
+            color: #333;
+        }
+
+        a { color: #333; }
+    </style>
+
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+
+<body>
+    <div class="login-container">
+
+        <h2>SmartCart</h2>
+        <p class="subtitle">Login to your account</p>
+
+        <form id="loginForm">
+            <input
+                type="email"
+                id="email"
+                placeholder="Enter Gmail Address"
+                required
+            >
+
+            <input
+                type="password"
+                id="password"
+                placeholder="Enter SmartCart Password"
+                required
+            >
+
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+
+        <p id="message" class="message"></p>
+
+        <p style="text-align:center;">
+            Don't have an account?
+            <a href="Register.html">Create Account</a>
+        </p>
+
+        <div id="g_id_onload"
+             data-client_id="480676882380-sk9a5moppfitedhg0nfoup5bcmdi99hd.apps.googleusercontent.com"
+             data-callback="handleGoogleLogin">
+        </div>
+
+        <div class="g_id_signin"
+             data-type="standard"
+             data-size="large"
+             data-theme="outline"
+             data-text="signin_with"
+             data-shape="rectangular">
+        </div>
+
+        <button
+            type="button"
+            class="back-btn"
+            onclick="window.location.href='index.html'">
+            Back to Home
+        </button>
+
+    </div>
+
+    <script>
+        document.getElementById("loginForm")
+        .addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value;
+            const message = document.getElementById("message");
+
+            message.textContent = "Checking login...";
+
+            try {
+                const response = await fetch("/email-login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    localStorage.setItem("userName", data.user.name);
+                    localStorage.setItem("userEmail", data.user.email);
+
+                    window.location.href = "index.html";
+                } else {
+                    message.style.color = "red";
+                    message.textContent = data.message;
+                }
+
+            } catch (error) {
+                console.error(error);
+                message.style.color = "red";
+                message.textContent = "Server connection failed";
+            }
         });
 
-        const result = await response.json();
+        async function handleGoogleLogin(response) {
+            try {
+                const result = await fetch("/google-login", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        credential: response.credential
+                    })
+                });
 
-        message.textContent = result.message;
+                const data = await result.json();
 
-        if (response.ok) {
-            sessionStorage.setItem(
-                "smartcartCustomer",
-                JSON.stringify(result.customer)
-            );
+                if (data.success) {
+                    localStorage.setItem("userName", data.user.name);
+                    localStorage.setItem("userEmail", data.user.email);
+                    localStorage.setItem("userDP", data.user.picture || "");
 
-            window.location.href = "index.html";
+                    window.location.href = "index.html";
+                } else {
+                    alert(data.message);
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("Google Login Failed");
+            }
         }
-    } catch (error) {
-        message.textContent = "Server connection failed. Please try again.";
-        console.error(error);
-    }
-});
-</script>
-    
-
+    </script>
 </body>
 </html>

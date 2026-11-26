@@ -1,16 +1,225 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mysql = require("mysql2");
+const bcrypt = require("bcryptjs");
 const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
 const axios = require("axios");
 const FormData = require("form-data");
+const { OAuth2Client } = require("google-auth-library");
+
+const googleClient = new OAuth2Client(
+    process.env.GOOGLE_CLIENT_ID
+);
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.post("/google-login", async (req, res) => {
+    try {
+        const { credential } = req.body;
 
+        if (!credential) {
+            return res.status(400).json({
+                success: false,
+                message: "Google credential missing"
+            });
+        }
+
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID
+        });
+
+        const payload = ticket.getPayload();
+
+        if (!payload.email_verified) {
+            return res.status(401).json({
+                success: false,
+                message: "Google email is not verified"
+            });
+        }
+
+        const sql = `
+            INSERT INTO google_users
+            (google_id, full_name, email, profile_picture)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                full_name = VALUES(full_name),
+                email = VALUES(email),
+                profile_picture = VALUES(profile_picture)
+        `;
+
+        db.query(
+            sql,
+            [
+                payload.sub,
+                payload.name,
+                payload.email,
+                payload.picture || null
+            ],
+            (err, result) => {
+                if (err) {
+                    console.error("Google DB Error:", err.message);
+
+                    return res.status(500).json({
+                        success: false,
+                        message: "Database save failed"
+                    });
+                }
+
+                res.json({
+                    success: true,
+                    message: "Google Login Successful",
+                    user: {
+                        googleId: payload.sub,
+                        name: payload.name,
+                        email: payload.email,
+                        picture: payload.picture
+                    }
+                });
+            }
+        );
+
+    } catch (error) {
+        console.error("Google Login Error:", error.message);
+
+        res.status(401).json({
+            success: false,
+            message: "Google Authentication Failed"
+        });
+    }
+});
+
+
+app.post("/email-register", async (req, res) => {
+    try {
+        const { full_name, email, password } = req.body;
+
+        if (!full_name || !email || !password) {
+            return res.status(400).json({
+                success: false,
+                message: "All fields are required"
+            });
+        }
+
+        if (password.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message: "Password must be at least 8 characters"
+            });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 12);
+
+        const sql = `
+            INSERT INTO email_users
+            (full_name, email, password_hash)
+            VALUES (?, ?, ?)
+        `;
+
+        db.query(
+            sql,
+            [full_name.trim(), email.trim().toLowerCase(), passwordHash],
+            (err, result) => {
+                if (err) {
+                    if (err.code === "ER_DUP_ENTRY") {
+                        return res.status(409).json({
+                            success: false,
+                            message: "Email already registered"
+                        });
+                    }
+
+                    console.error("Registration DB Error:", err.message);
+
+                    return res.status(500).json({
+                        success: false,
+                        message: "Registration failed"
+                    });
+                }
+
+                res.status(201).json({
+                    success: true,
+                    message: "Registration successful"
+                });
+            }
+        );
+
+    } catch (error) {
+        console.error("Registration Error:", error.message);
+
+        res.status(500).json({
+            success: false,
+            message: "Server error"
+        });
+    }
+});
+
+app.post("/email-login", (req, res) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return res.status(400).json({
+            success: false,
+            message: "Email and password required"
+        });
+    }
+
+    const sql = `
+        SELECT id, full_name, email, password_hash
+        FROM email_users
+        WHERE email = ?
+    `;
+
+    db.query(sql, [email.trim().toLowerCase()], async (err, results) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                success: false,
+                message: "Database error"
+            });
+        }
+
+        if (results.length === 0) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password"
+            });
+        }
+
+        const user = results[0];
+
+        const isMatch = await bcrypt.compare(
+            password,
+            user.password_hash
+        );
+
+        if (!isMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid email or password"
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Login successful",
+            user: {
+                id: user.id,
+                name: user.full_name,
+                email: user.email
+            }
+        });
+    });
+});
+
+app.get("/", (req, res) => {
+    res.sendFile(
+        path.join(__dirname, "../frontend/Login.html")
+    );
+});
 app.use(express.static(path.join(__dirname, "../frontend")));
 
 app.get("/edit-profile.html", (req, res) => {
@@ -325,7 +534,7 @@ app.get("/customer-by-id/:id", (req, res) => {
 
             res.json(results[0]);
         }
-    );
+    );   
 });
 
 // Update customer details
@@ -661,6 +870,6 @@ app.put("/admin/seller/:id", (req, res) => {
 });
 
 // Start server
-app.listen(3000, () => {
+app.listen(3000, "0.0.0.0", () => {
     console.log("SmartCart server running on port 3000");
 });

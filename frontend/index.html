@@ -9,6 +9,18 @@
 <body>
 
 <header class="navbar">
+     <div id="userProfile" style="display:flex; align-items:center; gap:8px;">
+    <img id="userDP"
+         src=""
+         alt="Profile"
+         style="width:35px; height:35px; border-radius:50%; display:none;">
+
+    <span id="userName"></span>
+
+    <button id="loginBtn" onclick="openLoginPage()">
+        🔐 Login
+    </button>
+</div>
     <h1 class="logo">🛒 Smart<span>Cart</span></h1>
 
     <input id="searchInput" type="text"
@@ -18,7 +30,8 @@
     
     <button onclick="window.location.href='profile.html'">👤Profile </button>
     <button onclick="showMyOrder()"> 📦MyOrder</button>
-    <button onclick="openLoginPage()">🔐 Login</button>
+    <button>🛒Cart</button>
+   
     <a href="seller.html" class="seller-btn"> 🐥Become a Seller</a>
     <a href="admin.html" >🌝</a>
     
@@ -284,6 +297,35 @@ document.addEventListener("DOMContentLoaded", function () {
 
         slides[currentSlide].classList.add("active");
     }, 4000);
+});
+
+</script>
+<script>
+window.addEventListener("DOMContentLoaded", function () {
+
+    const name = localStorage.getItem("userName");
+    const dp = localStorage.getItem("userDP");
+
+    if (name) {
+        document.getElementById("userName").textContent = name;
+        document.getElementById("loginBtn").style.display = "none";
+    }
+
+    if (dp) {
+        const image = document.getElementById("userDP");
+
+        image.referrerPolicy = "no-referrer";
+        image.onload = function () {
+            image.style.display = "block";
+        };
+
+        image.onerror = function () {
+            console.log("Profile image failed to load");
+        };
+
+        image.src = dp;
+    }
+
 });
 </script>
 </body>
